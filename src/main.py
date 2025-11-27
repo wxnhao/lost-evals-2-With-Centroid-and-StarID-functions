@@ -127,6 +127,10 @@ def test_run_centroiding_given_attitude(ra_input: str | float, de_input: str | f
 def test_run_starID_random_attitude():
     pass
 
+#WIP
+def test_run_starID_given_attitude():
+    pass
+
 if __name__ == "__main__":
     current_module = sys.modules[__name__]
     functions = {
