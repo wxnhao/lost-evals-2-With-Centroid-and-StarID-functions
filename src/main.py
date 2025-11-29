@@ -87,7 +87,8 @@ def test_run_centroiding_random_attitude() -> CentroidResult:
         star_id_algo="tetra",
         attitude_algo="dqm",
         centroid_mag_filter=0,
-        print_attitude=attitude_output_fname
+        print_attitude=attitude_output_fname,
+        centroid_compare_threshold = 2
     )
     ret = run_entire_pipeline_C(options)
     print(ret)
@@ -116,20 +117,70 @@ def test_run_centroiding_given_attitude(ra_input: str | float, de_input: str | f
         star_id_algo="tetra",
         attitude_algo="dqm",
         centroid_mag_filter=0,
-        print_attitude=attitude_output_fname
+        print_attitude=attitude_output_fname,
+        centroid_compare_threshold=2
     )
     ret = run_entire_pipeline_C(options)
     print(ret)
     print(parse_attitude_result(attitude_output_fname))
     return ret
 
-#WIP
-def test_run_starID_random_attitude():
-    pass
+from lost_api import StarIDResult
+def test_run_starID_random_attitude() -> StarIDResult:
+    from lost_api import run_entire_pipeline_S, parse_attitude_result, PipelineOptions
+    attitude_output_fname = "attitude.txt"
+    options = PipelineOptions(
+        generate=1,
+        generate_random_attitudes=True,
+        generate_exposure=0.6,
+        centroid_algo="cog",
+        database="tetra-20.dat",
+        false_stars=0,
+        star_id_algo="tetra",
+        attitude_algo="dqm",
+        centroid_mag_filter=0,
+        print_attitude=attitude_output_fname,
+        centroid_compare_threshold=2
+    )
+    ret = run_entire_pipeline_S(options)
+    print(ret)
+    print(parse_attitude_result(attitude_output_fname))
+    return ret
 
-#WIP
-def test_run_starID_given_attitude():
-    pass
+def test_run_starID_given_attitude(ra_input: str | float, de_input: str | float, roll_input: str | float)-> StarIDResult:
+    try:
+        ra = float(ra_input)
+        de = float(de_input)
+        roll = float(roll_input)
+    except ValueError:
+        raise ValueError("ra, de, and roll must be convertible to float")
+    from lost_api import run_entire_pipeline_S, parse_attitude_result, PipelineOptions
+    attitude_output_fname = "attitude.txt"
+    options = PipelineOptions(
+        generate=1,
+        generate_ra=ra,
+        generate_de=de,
+        generate_roll=roll,
+        generate_random_attitudes=False,
+        generate_exposure=0.6,
+        centroid_algo="cog",
+        database="tetra-20.dat",
+        false_stars=0,
+        star_id_algo="tetra",
+        attitude_algo="dqm",
+        centroid_mag_filter=0,
+        print_attitude=attitude_output_fname
+    )
+    ret = run_entire_pipeline_S(options)
+    print(ret)
+    print(parse_attitude_result(attitude_output_fname))
+    return ret
+
+def test_test():
+    a = test_run_starID_given_attitude(200, 40, 300)
+    b = test_run_centroiding_given_attitude(200, 40, 300)
+    print(a)
+    print(b)
 
 if __name__ == "__main__":
     current_module = sys.modules[__name__]

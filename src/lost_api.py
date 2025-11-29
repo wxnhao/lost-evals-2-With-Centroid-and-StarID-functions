@@ -290,6 +290,8 @@ class PipelineOptions:
     centroid_mag_filter: int = 0
     # fname to output attitude estimates to
     print_attitude: str = "attitude.txt"
+    #centroid compare threshold
+    centroid_compare_threshold: int = 2
 
 #the wanhao Centroiding and StarID testing pipelines
 
@@ -319,7 +321,7 @@ def run_entire_pipeline_C(options: PipelineOptions) -> CentroidResult | None:
         "--centroid-mag-filter", str(options.centroid_mag_filter),
         "--print-attitude", options.print_attitude,
         "--plot-input", "input-foo-zeddie-test.png",
-        "--compare-centroids", "--centroid-compare-threshold", "2"
+        "--compare-centroids", "--centroid-compare-threshold", str(options.centroid_compare_threshold)
         ]
     
     #Check if assigned attitude or go random      
@@ -382,7 +384,7 @@ def run_entire_pipeline_C(options: PipelineOptions) -> CentroidResult | None:
         centroids_mean_error=cent_error
     )
 
-#STAR ID IS WIP
+#STAR ID
 @dataclass
 class StarIDResult:
     starid_num_correct: int | None = None
@@ -409,7 +411,8 @@ def run_entire_pipeline_S(options: PipelineOptions) -> bool:
         "--attitude-algo", options.attitude_algo,
         "--centroid-mag-filter", str(options.centroid_mag_filter),
         "--print-attitude", options.print_attitude,
-        "--plot-input", "input-foo-zeddie-test.png"
+        "--plot-input", "input-foo-zeddie-test.png",
+        "--compare-star-ids", "--database", options.database
     ]
 
     if options.generate_random_attitudes:
@@ -423,20 +426,53 @@ def run_entire_pipeline_S(options: PipelineOptions) -> bool:
 
     try:
         result = subprocess.run(
-            cmd,
-            cwd=lost_dir,
+        cmd,
+        cwd=lost_dir,
+        stdout=subprocess.PIPE,
+        text=True
         )
         if result.returncode != 0:
             print(f"Pipeline failed with return code {result.returncode}")
             print(result.stderr.decode().strip())
-            return False
-        return True
+            return None
     except subprocess.CalledProcessError as e:
         print(f"Pipeline failed: {e.stderr.decode().strip()}")
-        return False
+        return None
     except Exception as e:
         print(f"Error: {e}")
-        return False
+        return None
+    
+    output = result.stdout
+    sid_correct = None
+    sid_incorrect = None
+    sid_total = None
+    #get each line of outputs and grab the needed values
+    for raw in output.splitlines():
+        print(raw)
+        #clean up each line's spaces, continue if empty
+        line = raw.strip()
+        if not line:
+            continue
+        if line.startswith("starid_num_correct"):
+            try:
+                sid_correct = int(line.split()[-1])
+            except Exception:
+                print("Failure on starid_num_correct")
+        elif line.startswith("starid_num_incorrect"):
+            try:
+                sid_incorrect = int(line.split()[-1])
+            except Exception:
+                print("Failure on starid_num_incorrect")
+        elif line.startswith("starid_num_total"):
+            try:
+                sid_total = int(line.split()[-1])
+            except Exception:
+                print("Failure on starid_num_total")
+    return StarIDResult(
+        starid_num_correct=sid_correct,
+        starid_num_incorrect=sid_incorrect,
+        starid_num_total=sid_total
+    )
 # def run_starID(options: PipelineOptions, algo: str = "tetra") -> bool:
 #     lost_dir = _get_lost_dir()
 
